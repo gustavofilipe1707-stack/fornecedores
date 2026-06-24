@@ -1,0 +1,710 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --bg:#F4F6F8;
+    --surface:#FFFFFF;
+    --ink:#172033;
+    --ink-soft:#5B6472;
+    --accent:#0F6657;
+    --accent-soft:#E4F1EE;
+    --warn:#B45309;
+    --warn-soft:#FCEEDC;
+    --line:#DCE1E7;
+    --danger:#B3261E;
+    --radius:10px;
+  }
+
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  .wrap{
+    font-family:'IBM Plex Sans', sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    min-height:100vh;
+    padding:32px 16px 80px;
+  }
+  .shell{ max-width:820px; margin:0 auto; }
+
+  .topbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:10px; }
+  .brand{ display:flex; align-items:baseline; gap:10px; }
+  .brand .mark{ font-family:'Space Grotesk', sans-serif; font-weight:700; font-size:20px; letter-spacing:-0.02em; }
+  .brand .tag{ font-size:11px; color:var(--ink-soft); border-left:1px solid var(--line); padding-left:10px; text-transform:uppercase; letter-spacing:.06em; }
+  .switch-view{ background:none; border:1px solid var(--line); color:var(--ink-soft); font-size:12px; padding:7px 12px; border-radius:999px; cursor:pointer; font-family:'IBM Plex Sans', sans-serif; }
+  .switch-view:hover{ border-color:var(--accent); color:var(--accent); }
+
+  h1{ font-family:'Space Grotesk', sans-serif; font-size:26px; line-height:1.2; margin:0 0 6px; letter-spacing:-0.01em; }
+  .lede{ color:var(--ink-soft); font-size:14px; line-height:1.55; margin:0 0 28px; max-width:580px; }
+
+  .section{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); margin-bottom:20px; overflow:hidden; }
+  .section-head{ display:flex; align-items:center; gap:10px; padding:16px 20px; border-bottom:1px solid var(--line); }
+  .step-no{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--accent); background:var(--accent-soft); border-radius:5px; padding:3px 7px; }
+  .section-head h2{ font-family:'Space Grotesk', sans-serif; font-size:15px; margin:0; font-weight:600; }
+  .section-body{ padding:20px; }
+
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:560px){ .grid2{ grid-template-columns:1fr; } }
+
+  label{ display:block; font-size:12px; color:var(--ink-soft); margin-bottom:5px; font-weight:500; }
+  label .req{ color:var(--danger); }
+  input, select, textarea{
+    width:100%; border:1px solid var(--line); border-radius:7px; padding:9px 11px;
+    font-size:13.5px; font-family:'IBM Plex Sans', sans-serif; color:var(--ink); background:#fff; margin-bottom:14px;
+  }
+  input:focus, select:focus, textarea:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  input[data-mono], textarea[data-mono]{ font-family:'IBM Plex Mono', monospace; font-size:13px; }
+
+  .crew{ display:flex; flex-direction:column; gap:14px; }
+  .crew-card{ position:relative; border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:8px; padding:16px 18px 4px; background:#FBFCFC; }
+  .crew-card .idx{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--accent); margin-bottom:10px; display:block; }
+  .remove-btn{ position:absolute; top:12px; right:14px; background:none; border:none; color:var(--ink-soft); cursor:pointer; font-size:12px; text-decoration:underline; }
+  .remove-btn:hover{ color:var(--danger); }
+
+  .toolbar-row{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+  .add-btn{ background:var(--accent-soft); color:var(--accent); border:1px dashed var(--accent); border-radius:7px; padding:9px 16px; font-size:13px; font-weight:500; cursor:pointer; font-family:'IBM Plex Sans', sans-serif; }
+  .add-btn:hover{ background:#DCEEE9; }
+  .ghost-btn{ background:none; color:var(--ink-soft); border:1px solid var(--line); border-radius:7px; padding:9px 16px; font-size:13px; cursor:pointer; font-family:'IBM Plex Sans', sans-serif; }
+  .ghost-btn:hover{ border-color:var(--ink-soft); color:var(--ink); }
+
+  .submit-row{ display:flex; align-items:center; gap:14px; margin-top:6px; flex-wrap:wrap; }
+  .submit-btn{ background:var(--ink); color:#fff; border:none; border-radius:7px; padding:12px 22px; font-size:14px; font-weight:600; cursor:pointer; font-family:'Space Grotesk', sans-serif; }
+  .submit-btn:hover{ background:#0d1726; }
+  .submit-btn:disabled{ opacity:.5; cursor:default; }
+  .status-msg{ font-size:13px; color:var(--ink-soft); }
+  .status-msg.ok{ color:var(--accent); }
+  .status-msg.err{ color:var(--danger); }
+
+  .privacy-note{ font-size:11.5px; color:var(--ink-soft); line-height:1.5; background:var(--warn-soft); border:1px solid #F1DDB8; border-radius:7px; padding:10px 13px; margin-bottom:20px; }
+
+  /* Admin / portal */
+  .admin-toolbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; gap:10px; flex-wrap:wrap; }
+  .export-btn{ background:none; border:1px solid var(--accent); color:var(--accent); border-radius:7px; padding:8px 14px; font-size:12.5px; cursor:pointer; font-family:'IBM Plex Sans', sans-serif; }
+  .export-btn:hover{ background:var(--accent-soft); }
+  .summary-bar{ display:flex; gap:16px; margin-bottom:18px; flex-wrap:wrap; }
+  .summary-pill{ background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:10px 16px; }
+  .summary-pill .num{ font-family:'Space Grotesk',sans-serif; font-size:20px; font-weight:700; display:block; }
+  .summary-pill .lbl{ font-size:11px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; }
+
+  .view-tabs{ display:flex; gap:6px; background:var(--surface); border:1px solid var(--line); border-radius:999px; padding:4px; }
+  .view-tab{ border:none; background:none; padding:7px 14px; border-radius:999px; font-size:12.5px; cursor:pointer; color:var(--ink-soft); font-family:'IBM Plex Sans', sans-serif; }
+  .view-tab.active{ background:var(--ink); color:#fff; }
+  .filter-row{ display:flex; gap:10px; align-items:center; margin-bottom:18px; flex-wrap:wrap; }
+  .filter-row select{ margin-bottom:0; width:auto; min-width:200px; }
+  .filter-row label{ margin:0; }
+
+  .vendor-group{ background:var(--surface); border:1px solid var(--line); border-radius:10px; margin-bottom:14px; overflow:hidden; }
+  .vendor-head{ display:flex; justify-content:space-between; align-items:center; padding:14px 18px; cursor:pointer; }
+  .vendor-head:hover{ background:#FAFBFC; }
+  .vendor-head .vname{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:15px; }
+  .vendor-head .vmeta{ font-size:12px; color:var(--ink-soft); }
+  .vendor-head .chev{ color:var(--ink-soft); font-size:12px; transition:transform .15s; }
+  .vendor-body{ padding:0 18px 18px; border-top:1px solid var(--line); }
+  .vendor-body.collapsed{ display:none; }
+
+  .project-line{ font-size:12px; color:var(--accent); background:var(--accent-soft); border-radius:6px; padding:6px 10px; margin-bottom:10px; display:inline-block; }
+
+  .submission{ background:var(--surface); border:1px solid var(--line); border-radius:9px; padding:16px 18px; margin-bottom:14px; overflow-x:auto; }
+  .vendor-body .submission{ background:#FBFCFC; }
+  .submission-head{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; flex-wrap:wrap; gap:6px; }
+  .submission-head .company{ font-family:'Space Grotesk', sans-serif; font-weight:600; font-size:15px; }
+  .submission-head .ts{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--ink-soft); }
+  table.crew-table{ width:100%; border-collapse:collapse; font-size:12.5px; min-width:680px; }
+  table.crew-table th{ text-align:left; color:var(--ink-soft); font-weight:500; font-size:11px; text-transform:uppercase; letter-spacing:.03em; border-bottom:1px solid var(--line); padding:6px 8px; white-space:nowrap; }
+  table.crew-table td{ padding:6px 8px; border-bottom:1px solid #EEF1F3; font-family:'IBM Plex Mono', monospace; font-size:12px; vertical-align:top; }
+  table.crew-table input.ramal-input{ margin:0; padding:5px 7px; font-size:12px; width:80px; }
+  .save-flag{ font-size:10px; color:var(--accent); margin-left:6px; }
+
+  .empty-state{ text-align:center; color:var(--ink-soft); font-size:13px; padding:50px 0; }
+  .gate{ max-width:340px; margin:60px auto; text-align:center; }
+  .gate input{ text-align:center; }
+  .gate-btn{ background:var(--ink); color:#fff; border:none; border-radius:7px; padding:10px 20px; font-size:13px; cursor:pointer; width:100%; }
+</style>
+
+<div class="wrap">
+  <div class="shell" id="root"></div>
+</div>
+
+<script>
+(function(){
+  const root = document.getElementById('root');
+  let view = 'form'; // 'form' | 'gate' | 'admin'
+  const ADMIN_CODE = 'acesso2026';
+  const DB_URL = 'https://fornecedores-3ab1c-default-rtdb.firebaseio.com';
+
+  async function dbSet(id, data){
+    const res = await fetch(`${DB_URL}/submissoes/${id}.json`, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    });
+    if(!res.ok) throw new Error('Falha ao gravar no Firebase (' + res.status + ')');
+    return await res.json();
+  }
+
+  async function dbGetAll(){
+    const res = await fetch(`${DB_URL}/submissoes.json`);
+    if(!res.ok) throw new Error('Falha ao ler do Firebase (' + res.status + ')');
+    const json = await res.json();
+    return json || {};
+  }
+
+  let crew = [emptyMember()];
+
+  function emptyMember(){
+    return {
+      nome:'', cpf:'', cargo:'', cidade:'',
+      operadora:'', conexao:'', velocidade:'', equipamento:'', so:'',
+      headset:'', navegador:'', vpn:'', instalacao:'',
+      macs:'', ramal:''
+    };
+  }
+  function emptyProjeto(){
+    return { nomeProjeto:'', numeroProjeto:'', filaTipo:'', discador:'', nomeFila:'', statusProjeto:'' };
+  }
+
+  function slug(s){
+    return (s||'sem-nome').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+  }
+  function esc(s){ return (s==null?'':String(s)).replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+  function norm(s){ return (s||'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim(); }
+
+  const HEADER_MAP = {
+    'nome':'nome', 'nome completo':'nome',
+    'cpf':'cpf',
+    'cargo':'cargo', 'funcao':'cargo', 'cargo/funcao':'cargo',
+    'cidade':'cidade', 'cidade/uf':'cidade', 'cidade uf':'cidade',
+    'operadora':'operadora', 'operadora de internet':'operadora', 'provedor':'operadora',
+    'conexao':'conexao', 'tipo de conexao':'conexao',
+    'velocidade':'velocidade', 'velocidade contratada':'velocidade',
+    'equipamento':'equipamento',
+    'so':'so', 'sistema operacional':'so',
+    'headset':'headset', 'tipo de headset':'headset',
+    'navegador':'navegador', 'navegador utilizado':'navegador',
+    'vpn':'vpn', 'vai utilizar vpn':'vpn', 'utiliza vpn':'vpn',
+    'instalacao':'instalacao', 'necessita instalacao':'instalacao', 'necessita de instalacao':'instalacao',
+    'mac':'macs', 'macs':'macs', 'mac address':'macs', 'endereco mac':'macs', 'enderecos mac':'macs', 'endereco(s) mac':'macs',
+    'ramal':'ramal'
+  };
+
+  function render(){
+    if(view==='form') renderForm();
+    else if(view==='gate') renderGate();
+    else renderAdmin();
+  }
+
+  function renderForm(){
+    root.innerHTML = `
+      <div class="topbar">
+        <div class="brand">
+          <span class="mark">Ficha de Acesso</span>
+          <span class="tag">Onboarding de fornecedores</span>
+        </div>
+        <button class="switch-view" id="toAdmin">Painel administrativo →</button>
+      </div>
+
+      <h1>Cadastro de equipe e conectividade</h1>
+      <p class="lede">Preencha os dados da sua empresa, do projeto e de cada profissional que vai atuar com a gente, ou importe uma planilha já preenchida.</p>
+
+      <div class="privacy-note">
+        Este formulário fica salvo neste link, acessível por quem tiver o endereço. Não inclua senhas. Use apenas o link enviado diretamente pela nossa equipe.
+      </div>
+
+      <div class="section">
+        <div class="section-head"><span class="step-no">01</span><h2>Dados do fornecedor</h2></div>
+        <div class="section-body">
+          <div class="grid2">
+            <div><label>Razão social / nome do fornecedor <span class="req">*</span></label><input id="f-empresa" placeholder="Ex: Tech Solutions Ltda"></div>
+            <div><label>Responsável pelo envio <span class="req">*</span></label><input id="f-resp" placeholder="Nome completo"></div>
+            <div><label>E-mail do responsável <span class="req">*</span></label><input id="f-email-resp" type="email" placeholder="nome@fornecedor.com"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><span class="step-no">02</span><h2>Fastquest e discador</h2></div>
+        <div class="section-body">
+          <div class="grid2">
+            <div><label>Nome do projeto</label><input id="f-proj-nome" placeholder="Ex: Cobrança Ativa II"></div>
+            <div><label>Número do projeto Fastquest</label><input id="f-proj-numero" data-mono placeholder="Ex: 10234"></div>
+            <div><label>Fila automática ou manual</label>
+              <select id="f-proj-fila-tipo">
+                <option value="">Selecione</option>
+                <option value="Automática">Automática</option>
+                <option value="Manual">Manual</option>
+              </select>
+            </div>
+            <div><label>Discador utilizado</label>
+              <select id="f-proj-discador">
+                <option value="">Selecione</option>
+                <option value="Vonix">Vonix</option>
+                <option value="Dialer">Dialer</option>
+              </select>
+            </div>
+            <div><label>Nome da fila criada</label><input id="f-proj-fila-nome" placeholder="Ex: FILA_COBRANCA_II"></div>
+            <div><label>Projeto novo ou iniciado</label>
+              <select id="f-proj-status">
+                <option value="">Selecione</option>
+                <option value="Novo">Novo</option>
+                <option value="Já iniciado">Já iniciado</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><span class="step-no">03</span><h2>Equipe que vai trabalhar com a gente</h2></div>
+        <div class="section-body">
+          <div class="toolbar-row">
+            <button class="add-btn" id="import-btn" type="button">Importar planilha (.xlsx/.csv)</button>
+            <button class="ghost-btn" id="template-btn" type="button">Baixar modelo de planilha</button>
+            <input type="file" id="import-file" accept=".xlsx,.xls,.csv" style="display:none;">
+          </div>
+          <p class="status-msg" id="import-status"></p>
+          <div class="crew" id="crew-list"></div>
+          <button class="add-btn" id="add-member" type="button" style="margin-top:14px;">+ adicionar mais um profissional</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><span class="step-no">04</span><h2>Enviar</h2></div>
+        <div class="section-body">
+          <div class="submit-row">
+            <button class="submit-btn" id="submit-btn">Enviar cadastro</button>
+            <span class="status-msg" id="status"></span>
+          </div>
+        </div>
+      </div>
+    `;
+    renderCrew();
+    document.getElementById('toAdmin').onclick = ()=>{ view='gate'; render(); };
+    document.getElementById('add-member').onclick = ()=>{ crew.push(emptyMember()); renderCrew(); };
+    document.getElementById('submit-btn').onclick = submitForm;
+    document.getElementById('template-btn').onclick = downloadTemplate;
+    document.getElementById('import-btn').onclick = ()=>document.getElementById('import-file').click();
+    document.getElementById('import-file').onchange = handleImport;
+  }
+
+  function renderCrew(){
+    const list = document.getElementById('crew-list');
+    list.innerHTML = crew.map((m,i)=>`
+      <div class="crew-card" data-i="${i}">
+        <span class="idx">PROFISSIONAL ${String(i+1).padStart(2,'0')}</span>
+        ${crew.length>1?`<button class="remove-btn" data-remove="${i}">remover</button>`:''}
+        <div class="grid2">
+          <div><label>Nome completo <span class="req">*</span></label><input data-f="nome" data-i="${i}" value="${esc(m.nome)}"></div>
+          <div><label>CPF <span class="req">*</span></label><input data-mono data-f="cpf" data-i="${i}" value="${esc(m.cpf)}" placeholder="000.000.000-00"></div>
+          <div><label>Cargo / função</label><input data-f="cargo" data-i="${i}" value="${esc(m.cargo)}"></div>
+          <div><label>Cidade / UF (home office)</label><input data-f="cidade" data-i="${i}" value="${esc(m.cidade)}" placeholder="Ex: Santo André / SP"></div>
+          <div><label>Operadora de internet <span class="req">*</span></label><input data-f="operadora" data-i="${i}" value="${esc(m.operadora)}" placeholder="Ex: Vivo Fibra"></div>
+          <div>
+            <label>Tipo de conexão <span class="req">*</span></label>
+            <select data-f="conexao" data-i="${i}">
+              <option value="">Selecione</option>
+              <option value="Wi-Fi" ${m.conexao==='Wi-Fi'?'selected':''}>Wi-Fi</option>
+              <option value="Cabo" ${m.conexao==='Cabo'?'selected':''}>Cabo</option>
+              <option value="Wi-Fi e Cabo" ${m.conexao==='Wi-Fi e Cabo'?'selected':''}>Wi-Fi e Cabo</option>
+            </select>
+          </div>
+          <div><label>Velocidade contratada</label><input data-f="velocidade" data-i="${i}" value="${esc(m.velocidade)}" placeholder="Ex: 300 Mbps"></div>
+          <div><label>Equipamento</label>
+            <select data-f="equipamento" data-i="${i}">
+              <option value="">Selecione</option>
+              <option value="Fornecido pelo fornecedor" ${m.equipamento==='Fornecido pelo fornecedor'?'selected':''}>Fornecido pelo fornecedor</option>
+              <option value="Equipamento próprio (BYOD)" ${m.equipamento==='Equipamento próprio (BYOD)'?'selected':''}>Equipamento próprio (BYOD)</option>
+            </select>
+          </div>
+          <div><label>Sistema operacional</label><input data-f="so" data-i="${i}" value="${esc(m.so)}" placeholder="Ex: Windows 11"></div>
+          <div><label>Tipo de headset</label><input data-f="headset" data-i="${i}" value="${esc(m.headset)}" placeholder="Ex: USB com cancelamento de ruído"></div>
+          <div><label>Navegador utilizado</label>
+            <select data-f="navegador" data-i="${i}">
+              <option value="">Selecione</option>
+              <option value="Google Chrome" ${m.navegador==='Google Chrome'?'selected':''}>Google Chrome</option>
+              <option value="Microsoft Edge" ${m.navegador==='Microsoft Edge'?'selected':''}>Microsoft Edge</option>
+              <option value="Mozilla Firefox" ${m.navegador==='Mozilla Firefox'?'selected':''}>Mozilla Firefox</option>
+              <option value="Safari" ${m.navegador==='Safari'?'selected':''}>Safari</option>
+              <option value="Outro" ${m.navegador==='Outro'?'selected':''}>Outro</option>
+            </select>
+          </div>
+          <div><label>Vai utilizar VPN?</label>
+            <select data-f="vpn" data-i="${i}">
+              <option value="">Selecione</option>
+              <option value="Sim" ${m.vpn==='Sim'?'selected':''}>Sim</option>
+              <option value="Não" ${m.vpn==='Não'?'selected':''}>Não</option>
+            </select>
+          </div>
+          <div><label>Necessita de instalação (suporte remoto)?</label>
+            <select data-f="instalacao" data-i="${i}">
+              <option value="">Selecione</option>
+              <option value="Sim" ${m.instalacao==='Sim'?'selected':''}>Sim</option>
+              <option value="Não" ${m.instalacao==='Não'?'selected':''}>Não</option>
+            </select>
+          </div>
+          <div><label>Ramal (se já tiver / opcional)</label><input data-f="ramal" data-i="${i}" value="${esc(m.ramal)}" placeholder="Ex: 4521"></div>
+        </div>
+        <div>
+          <label>Endereço(s) MAC <span class="req">*</span> — um por linha, se houver mais de um dispositivo</label>
+          <textarea data-mono data-f="macs" data-i="${i}" rows="2" placeholder="AA:BB:CC:DD:EE:FF">${esc(m.macs)}</textarea>
+        </div>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('[data-f]').forEach(el=>{
+      el.addEventListener('input', e=>{
+        const i = +e.target.dataset.i, f = e.target.dataset.f;
+        crew[i][f] = e.target.value;
+      });
+    });
+    list.querySelectorAll('[data-remove]').forEach(btn=>{
+      btn.addEventListener('click', e=>{
+        crew.splice(+e.target.dataset.remove,1);
+        renderCrew();
+      });
+    });
+  }
+
+  function downloadTemplate(){
+    const headers = ['Nome','CPF','Cargo','Cidade/UF','Operadora','Conexao','Velocidade','Equipamento','SO','Headset','Navegador','VPN','Instalacao','MACs','Ramal'];
+    const example = ['João Silva','000.000.000-00','Analista de Suporte','São Paulo / SP','Vivo Fibra','Wi-Fi','300 Mbps','Equipamento próprio (BYOD)','Windows 11','USB com cancelamento de ruído','Google Chrome','Sim','Não','AA:BB:CC:DD:EE:FF',''];
+    const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Equipe');
+    XLSX.writeFile(wb, 'modelo-equipe-fornecedor.xlsx');
+  }
+
+  function handleImport(e){
+    const file = e.target.files[0];
+    const statusEl = document.getElementById('import-status');
+    if(!file) return;
+    statusEl.className = 'status-msg';
+    statusEl.textContent = 'Lendo planilha...';
+    const reader = new FileReader();
+    reader.onload = function(ev){
+      try{
+        const data = new Uint8Array(ev.target.result);
+        const wb = XLSX.read(data, {type:'array'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+        if(rows.length===0){ statusEl.className='status-msg err'; statusEl.textContent='Planilha vazia ou em formato não reconhecido.'; return; }
+        const imported = rows.map(row=>{
+          const m = emptyMember();
+          Object.keys(row).forEach(h=>{
+            const key = HEADER_MAP[norm(h)];
+            if(key){
+              let val = row[h];
+              if(key==='macs') val = String(val).replace(/;/g,'\n');
+              m[key] = String(val).trim();
+            }
+          });
+          return m;
+        }).filter(m=>m.nome || m.cpf);
+        if(imported.length===0){ statusEl.className='status-msg err'; statusEl.textContent='Não encontramos colunas reconhecíveis. Use o modelo de planilha.'; return; }
+        crew = imported;
+        renderCrew();
+        statusEl.className = 'status-msg ok';
+        statusEl.textContent = `${imported.length} profissional(is) importado(s). Revise os dados antes de enviar.`;
+      }catch(err){
+        statusEl.className = 'status-msg err';
+        statusEl.textContent = 'Não foi possível ler esse arquivo. Verifique o formato (.xlsx ou .csv).';
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  async function submitForm(){
+    const empresa = document.getElementById('f-empresa').value.trim();
+    const resp = document.getElementById('f-resp').value.trim();
+    const emailResp = document.getElementById('f-email-resp').value.trim();
+    const statusEl = document.getElementById('status');
+
+    if(!empresa || !resp || !emailResp){
+      statusEl.textContent = 'Preencha os dados obrigatórios do fornecedor (*).';
+      statusEl.className = 'status-msg err';
+      return;
+    }
+    for(const m of crew){
+      if(!m.nome || !m.cpf || !m.operadora || !m.conexao || !m.macs){
+        statusEl.textContent = 'Cada profissional precisa de nome, CPF, operadora, tipo de conexão e MAC address (*).';
+        statusEl.className = 'status-msg err';
+        return;
+      }
+    }
+
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    statusEl.textContent = 'Enviando...';
+    statusEl.className = 'status-msg';
+
+    const projeto = {
+      nomeProjeto: document.getElementById('f-proj-nome').value.trim(),
+      numeroProjeto: document.getElementById('f-proj-numero').value.trim(),
+      filaTipo: document.getElementById('f-proj-fila-tipo').value,
+      discador: document.getElementById('f-proj-discador').value,
+      nomeFila: document.getElementById('f-proj-fila-nome').value.trim(),
+      statusProjeto: document.getElementById('f-proj-status').value
+    };
+
+    const payload = {
+      empresa, responsavel: resp, emailResponsavel: emailResp,
+      enviadoEm: new Date().toISOString(),
+      projeto,
+      equipe: crew
+    };
+    const id = `${slug(empresa)}_${Date.now()}`;
+
+    try{
+      await dbSet(id, payload);
+      statusEl.textContent = 'Cadastro enviado com sucesso. Obrigado!';
+      statusEl.className = 'status-msg ok';
+      crew = [emptyMember()];
+      document.getElementById('f-empresa').value='';
+      document.getElementById('f-resp').value='';
+      document.getElementById('f-email-resp').value='';
+      document.getElementById('f-proj-nome').value='';
+      document.getElementById('f-proj-numero').value='';
+      document.getElementById('f-proj-fila-tipo').value='';
+      document.getElementById('f-proj-discador').value='';
+      document.getElementById('f-proj-fila-nome').value='';
+      document.getElementById('f-proj-status').value='';
+      renderCrew();
+    } catch(err){
+      statusEl.textContent = 'Não foi possível enviar agora. Verifique as regras de acesso do banco ou tente novamente.';
+      statusEl.className = 'status-msg err';
+    } finally { btn.disabled = false; }
+  }
+
+  function renderGate(){
+    root.innerHTML = `
+      <div class="topbar">
+        <div class="brand"><span class="mark">Ficha de Acesso</span></div>
+        <button class="switch-view" id="back">← voltar ao formulário</button>
+      </div>
+      <div class="gate">
+        <h1 style="font-size:18px;">Painel administrativo</h1>
+        <p class="lede" style="margin:0 auto 16px;">Digite o código de acesso para ver os cadastros recebidos.</p>
+        <input id="code" type="password" placeholder="código de acesso" style="margin-bottom:10px;">
+        <button class="gate-btn" id="enter">Entrar</button>
+        <p class="status-msg err" id="gate-err" style="margin-top:10px;"></p>
+      </div>
+    `;
+    document.getElementById('back').onclick = ()=>{ view='form'; render(); };
+    document.getElementById('enter').onclick = ()=>{
+      const v = document.getElementById('code').value;
+      if(v === ADMIN_CODE){ view='admin'; render(); }
+      else { document.getElementById('gate-err').textContent = 'Código incorreto.'; }
+    };
+  }
+
+  let adminData = []; // [{key, data}]
+  let adminViewMode = 'solicitacao'; // 'solicitacao' | 'fornecedor'
+  let adminFilterVendor = 'all';
+  let expandedVendors = new Set();
+
+  function projectLine(p){
+    if(!p) return '';
+    const parts = [];
+    if(p.nomeProjeto) parts.push(`Projeto: ${esc(p.nomeProjeto)}`);
+    if(p.numeroProjeto) parts.push(`Nº Fastquest: ${esc(p.numeroProjeto)}`);
+    if(p.filaTipo) parts.push(`Fila ${esc(p.filaTipo)}`);
+    if(p.discador) parts.push(`Discador: ${esc(p.discador)}`);
+    if(p.nomeFila) parts.push(`Fila: ${esc(p.nomeFila)}`);
+    if(p.statusProjeto) parts.push(esc(p.statusProjeto));
+    if(parts.length===0) return '';
+    return `<span class="project-line">${parts.join(' · ')}</span>`;
+  }
+
+  function submissionCardHTML(entry){
+    const s = entry.data;
+    return `
+      <div class="submission">
+        <div class="submission-head">
+          <span class="company">${esc(s.empresa)}</span>
+          <span class="ts">${new Date(s.enviadoEm).toLocaleString('pt-BR')}</span>
+        </div>
+        <div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:8px;">Responsável: ${esc(s.responsavel)} · ${esc(s.emailResponsavel)}</div>
+        <div style="margin-bottom:10px;">${projectLine(s.projeto)}</div>
+        <table class="crew-table">
+          <thead><tr><th>Nome</th><th>CPF</th><th>Cargo</th><th>MAC(s)</th><th>Operadora</th><th>Conexão</th><th>VPN</th><th>Instalação</th><th>Ramal</th></tr></thead>
+          <tbody>
+            ${s.equipe.map((m,mi)=>`<tr>
+              <td>${esc(m.nome)}</td><td>${esc(m.cpf)}</td><td>${esc(m.cargo)}</td>
+              <td>${esc(m.macs).replace(/\n/g,'<br>')}</td><td>${esc(m.operadora)}</td>
+              <td>${esc(m.conexao)}</td><td>${esc(m.vpn)}</td><td>${esc(m.instalacao)}</td>
+              <td><input class="ramal-input" data-key="${esc(entry.key)}" data-mi="${mi}" value="${esc(m.ramal)}" placeholder="—"></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  function bindRamalInputs(container){
+    container.querySelectorAll('.ramal-input').forEach(inp=>{
+      inp.addEventListener('change', async (e)=>{
+        const key = e.target.dataset.key, mi = +e.target.dataset.mi;
+        const entry = adminData.find(en=>en.key===key);
+        if(!entry) return;
+        entry.data.equipe[mi].ramal = e.target.value.trim();
+        try{
+          await dbSet(entry.key, entry.data);
+          const flag = document.createElement('span');
+          flag.className = 'save-flag';
+          flag.textContent = 'salvo';
+          e.target.insertAdjacentElement('afterend', flag);
+          setTimeout(()=>flag.remove(), 1500);
+        }catch(err){}
+      });
+    });
+  }
+
+  async function renderAdmin(){
+    root.innerHTML = `
+      <div class="topbar">
+        <div class="brand"><span class="mark">Ficha de Acesso</span><span class="tag">Painel administrativo</span></div>
+        <button class="switch-view" id="back">← voltar ao formulário</button>
+      </div>
+      <div class="admin-toolbar">
+        <h1 style="font-size:18px;margin:0;">Parque de fornecedores</h1>
+        <button class="export-btn" id="export">Exportar planilha (.xlsx)</button>
+      </div>
+      <div id="summary"></div>
+      <div class="filter-row">
+        <div class="view-tabs">
+          <button class="view-tab ${adminViewMode==='solicitacao'?'active':''}" data-mode="solicitacao">Por solicitação</button>
+          <button class="view-tab ${adminViewMode==='fornecedor'?'active':''}" data-mode="fornecedor">Por fornecedor</button>
+        </div>
+        <select id="vendor-filter"></select>
+      </div>
+      <div id="list"><div class="empty-state">Carregando...</div></div>
+    `;
+    document.getElementById('back').onclick = ()=>{ view='form'; render(); };
+    const listEl = document.getElementById('list');
+
+    let raw = {};
+    try{
+      raw = await dbGetAll();
+    }catch(e){
+      document.getElementById('summary').innerHTML = '';
+      document.querySelector('.filter-row').style.display = 'none';
+      listEl.innerHTML = `<div class="empty-state">Não foi possível conectar ao banco. Verifique as regras de acesso do Firebase (Realtime Database → Regras).<br><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;">${esc(e.message)}</span></div>`;
+      document.getElementById('export').onclick = ()=>alert('Sem dados para exportar.');
+      return;
+    }
+    const ids = Object.keys(raw).filter(id=>raw[id]);
+
+    if(ids.length===0){
+      document.getElementById('summary').innerHTML = '';
+      document.querySelector('.filter-row').style.display = 'none';
+      listEl.innerHTML = '<div class="empty-state">Nenhum cadastro recebido ainda.</div>';
+      document.getElementById('export').onclick = ()=>alert('Nenhum dado para exportar ainda.');
+      return;
+    }
+
+    adminData = ids.map(id=>({key:id, data: raw[id]}));
+    adminData.sort((a,b)=> new Date(b.data.enviadoEm) - new Date(a.data.enviadoEm));
+
+    const vendors = [...new Set(adminData.map(e=>e.data.empresa))].sort();
+    const vendorFilterEl = document.getElementById('vendor-filter');
+    vendorFilterEl.innerHTML = `<option value="all">Todos os fornecedores</option>` + vendors.map(v=>`<option value="${esc(v)}" ${adminFilterVendor===v?'selected':''}>${esc(v)}</option>`).join('');
+    vendorFilterEl.value = adminFilterVendor;
+    vendorFilterEl.onchange = (e)=>{ adminFilterVendor = e.target.value; renderList(); };
+
+    document.querySelectorAll('.view-tab').forEach(btn=>{
+      btn.onclick = ()=>{ adminViewMode = btn.dataset.mode; renderAdmin(); };
+    });
+
+    const totalSolicitacoes = adminData.length;
+    const totalFornecedores = vendors.length;
+    const totalPessoas = adminData.reduce((s,e)=>s+e.data.equipe.length,0);
+    const totalMacs = adminData.reduce((s,e)=>s+e.data.equipe.reduce((s2,m)=>s2+(m.macs||'').split('\n').filter(x=>x.trim()).length,0),0);
+    document.getElementById('summary').innerHTML = `
+      <div class="summary-bar">
+        <div class="summary-pill"><span class="num">${totalSolicitacoes}</span><span class="lbl">Solicitações</span></div>
+        <div class="summary-pill"><span class="num">${totalFornecedores}</span><span class="lbl">Fornecedores</span></div>
+        <div class="summary-pill"><span class="num">${totalPessoas}</span><span class="lbl">Profissionais</span></div>
+        <div class="summary-pill"><span class="num">${totalMacs}</span><span class="lbl">Dispositivos (MAC)</span></div>
+      </div>
+    `;
+
+    renderList();
+    document.getElementById('export').onclick = ()=>exportXLSX(adminData);
+  }
+
+  function renderList(){
+    const listEl = document.getElementById('list');
+    const filtered = adminFilterVendor==='all' ? adminData : adminData.filter(e=>e.data.empresa===adminFilterVendor);
+
+    if(filtered.length===0){
+      listEl.innerHTML = '<div class="empty-state">Nenhuma solicitação encontrada para esse filtro.</div>';
+      return;
+    }
+
+    if(adminViewMode==='solicitacao'){
+      listEl.innerHTML = filtered.map(entry=>submissionCardHTML(entry)).join('');
+      bindRamalInputs(listEl);
+      return;
+    }
+
+    // por fornecedor
+    const groups = {};
+    filtered.forEach(e=>{ (groups[e.data.empresa] = groups[e.data.empresa] || []).push(e); });
+    const vendorNames = Object.keys(groups).sort();
+
+    listEl.innerHTML = vendorNames.map(vname=>{
+      const entries = groups[vname];
+      const pessoas = entries.reduce((s,e)=>s+e.data.equipe.length,0);
+      const isOpen = expandedVendors.has(vname);
+      return `
+        <div class="vendor-group">
+          <div class="vendor-head" data-vendor="${esc(vname)}">
+            <div>
+              <span class="vname">${esc(vname)}</span>
+              <div class="vmeta">${entries.length} solicitação(ões) · ${pessoas} profissional(is)</div>
+            </div>
+            <span class="chev">${isOpen?'▲':'▼'}</span>
+          </div>
+          <div class="vendor-body ${isOpen?'':'collapsed'}" data-vendor-body="${esc(vname)}">
+            ${entries.map(entry=>submissionCardHTML(entry)).join('')}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    listEl.querySelectorAll('.vendor-head').forEach(h=>{
+      h.addEventListener('click', ()=>{
+        const v = h.dataset.vendor;
+        if(expandedVendors.has(v)) expandedVendors.delete(v); else expandedVendors.add(v);
+        renderList();
+      });
+    });
+    bindRamalInputs(listEl);
+  }
+
+  function exportXLSX(entries){
+    const detailHeaders = ['Fornecedor','Responsavel','Email Responsavel','Enviado em',
+      'Nome Projeto','Numero Projeto Fastquest','Fila Automatica ou Manual','Discador','Nome da Fila','Projeto Novo ou Iniciado',
+      'Nome','CPF','Cargo','Cidade/UF','Operadora','Conexao','Velocidade','Equipamento','SO','Headset','Navegador','VPN','Instalacao','MACs','Ramal'];
+    const detailRows = [detailHeaders];
+    const directoryHeaders = ['Fornecedor','Nome','Ramal','CPF'];
+    const directoryRows = [directoryHeaders];
+
+    entries.forEach(({data:s})=>{
+      const p = s.projeto || {};
+      s.equipe.forEach(m=>{
+        detailRows.push([s.empresa, s.responsavel, s.emailResponsavel, new Date(s.enviadoEm).toLocaleString('pt-BR'),
+          p.nomeProjeto, p.numeroProjeto, p.filaTipo, p.discador, p.nomeFila, p.statusProjeto,
+          m.nome, m.cpf, m.cargo, m.cidade, m.operadora, m.conexao, m.velocidade, m.equipamento, m.so,
+          m.headset, m.navegador, m.vpn, m.instalacao, (m.macs||'').replace(/\n/g,' / '), m.ramal]);
+        directoryRows.push([s.empresa, m.nome, m.ramal, m.cpf]);
+      });
+    });
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(detailRows), 'Detalhado');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(directoryRows), 'Usuarios e Ramais');
+    XLSX.writeFile(wb, `parque-fornecedores-${new Date().toISOString().slice(0,10)}.xlsx`);
+  }
+
+  render();
+})();
+</script>
